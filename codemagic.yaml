@@ -1,0 +1,84 @@
+# ============================================================================
+# Clam Finder — iOS build + TestFlight (Codemagic, cloud Mac). No Mac needed.
+# Reuses the existing App Store Connect API key integration in your Codemagic
+# account (the same key works for any app under your developer account).
+# ============================================================================
+workflows:
+  ios-clam-finder:
+    name: Clam Finder iOS
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: ParanormalPulse_ASC      # reuse your existing API key
+    environment:
+      vars:
+        BUNDLE_ID: "com.clamfinder.app"
+        XCODE_SCHEME: "App"
+      node: 20
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Prepare web assets (assemble www/ from repo root)
+        script: |
+          mkdir -p www
+          cp clamsight.html www/index.html
+          cp *.jpg www/
+          ls -la www
+      - name: Install JS dependencies
+        script: npm install
+      - name: Generate the iOS project (Capacitor)
+        script: |
+          npx cap add ios || true
+          npx cap sync ios
+      - name: Set Info.plist usage strings + build number
+        script: |
+          PLIST="ios/App/App/Info.plist"
+          # Camera — for the AI Vision scanner + "teach the AI" mode.
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'Clam Finder uses the camera so AI Vision can scan the wet sand for clam signs.'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSCameraUsageDescription 'Clam Finder uses the camera so AI Vision can scan the wet sand for clam signs.'" "$PLIST"
+          # Location — to pick the nearest NOAA tide station.
+          /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string 'Clam Finder uses your location to show tide times for the nearest station.'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSLocationWhenInUseUsageDescription 'Clam Finder uses your location to show tide times for the nearest station.'" "$PLIST"
+          # Standard HTTPS only -> export-compliance exempt (auto-skips the prompt).
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" "$PLIST"
+          # Unique, always-increasing build number (epoch). App Store Connect rejects reused ones.
+          BN=$(date +%s)
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BN" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BN" "$PLIST"
+          echo "CFBundleVersion=$BN"
+      - name: Set the app icon (Clam Finder clam icon)
+        script: |
+          ICONSET="ios/App/App/Assets.xcassets/AppIcon.appiconset"
+          for f in "$ICONSET"/*.png; do cp app-icon-1024.png "$f" && echo "replaced $f"; done
+          [ -e "$ICONSET/AppIcon-512@2x.png" ] || cp app-icon-1024.png "$ICONSET/AppIcon-512@2x.png"
+      - name: Set up code signing (clean stale + create fresh)
+        script: |
+          keychain initialize
+          # Wipe existing distribution certs + profiles, then create a fresh pair.
+          # (CI generates an ephemeral key each run, so old certs can't be reused.)
+          app-store-connect list-certificates --json > /tmp/c.json || echo "[]" > /tmp/c.json
+          python3 -c "import json;d=json.load(open('/tmp/c.json'));d=d.get('data',d) if isinstance(d,dict) else d;print(' '.join(x.get('id','') for x in (d or []) if isinstance(x,dict)))" > /tmp/cids.txt 2>/dev/null || true
+          for ID in $(cat /tmp/cids.txt 2>/dev/null); do echo "revoking cert $ID"; app-store-connect delete-certificate "$ID" || true; done
+          app-store-connect list-profiles --json > /tmp/p.json || echo "[]" > /tmp/p.json
+          python3 -c "import json;d=json.load(open('/tmp/p.json'));d=d.get('data',d) if isinstance(d,dict) else d;print(' '.join(x.get('id','') for x in (d or []) if isinstance(x,dict)))" > /tmp/pids.txt 2>/dev/null || true
+          for ID in $(cat /tmp/pids.txt 2>/dev/null); do echo "deleting profile $ID"; app-store-connect delete-profile "$ID" || true; done
+          openssl genrsa -out /tmp/cert_key.pem 2048
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --certificate-key @file:/tmp/cert_key.pem \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: Build .ipa
+        script: |
+          xcode-project build-ipa \
+            --workspace "ios/App/App.xcworkspace" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

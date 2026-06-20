@@ -1,0 +1,10 @@
+{
+  "appId": "com.clamfinder.app",
+  "appName": "Clam Finder",
+  "webDir": "www",
+  "backgroundColor": "#0c4346",
+  "server": { "iosScheme": "https" },
+  "plugins": {
+    "SplashScreen": { "backgroundColor": "#0c4346", "showSpinner": false }
+  }
+}

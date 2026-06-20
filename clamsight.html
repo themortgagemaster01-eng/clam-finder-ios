@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<title>Clam Finder — Long Island Sound</title>
+<meta name="theme-color" content="#0f766e"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Clam Finder"/>
+<meta name="description" content="A clean field companion for clamming the Long Island Sound — identify, log your haul, and learn the legal sizes."/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap"/>
+<style>
+:root{
+  --bg:#F4F1EA; --card:rgba(255,255,255,.85); --ink:#10302e; --ink2:#39524e; --mut:#6b7d78; --line:rgba(120,140,130,.16); --line2:rgba(120,140,130,.30);
+  --teal:#166063; --teal2:#A5D8CE; --teal-soft:#e4f3ef; --neon:#00F2FE; --sand:#F4F1EA; --sand2:#efe7d6;
+  --green:#1f9d57; --amber:#d98a1f; --red:#d2503f;
+  --r:22px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:#bca87f url('clamsight_bg.jpg?v=5') center top / cover no-repeat fixed;color:var(--ink);font-family:"Outfit",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden;position:fixed;inset:0}
+#app{background:transparent}
+#app{position:absolute;inset:0;display:flex;flex-direction:column}
+.screen{display:none;flex:1;min-height:0;animation:fade .35s ease}
+.screen.active{display:flex;flex-direction:column}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 0 calc(96px + env(safe-area-inset-bottom))}
+.pad{padding:0 18px}
+.serif{font-family:"Playfair Display",Georgia,serif}
+h1.h{font-family:"Playfair Display",serif;font-size:30px;font-weight:600;letter-spacing:-.01em;line-height:1.08}
+.eyebrow{color:var(--teal);font-size:11.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.sub{color:var(--mut);font-size:14px;line-height:1.5}
+.section-h{font-family:"Playfair Display",serif;font-size:19px;font-weight:600;margin:26px 2px 12px}
+
+/* hero with underwater light rays (pure CSS, no external images) */
+.hero{position:relative;overflow:hidden;padding:max(54px,env(safe-area-inset-top)) 20px 34px;
+  background:linear-gradient(to bottom, rgba(8,48,46,.52) 0%, rgba(8,48,46,.14) 55%, transparent 100%)}
+/* frosted glass cards over the underwater background */
+.card,.qcard,.row,.field,.sheet,.set-row,.pick,.disc,.up-label,.catch-row select,.catch-row .num{
+  backdrop-filter:blur(12px) saturate(1.1);-webkit-backdrop-filter:blur(12px) saturate(1.1)}
+#screen-identify .scroll,#screen-species .scroll,#screen-log .scroll,#screen-more .scroll{
+  background:linear-gradient(to bottom, rgba(246,249,247,.9) 0, rgba(246,249,247,.62) 150px, rgba(246,249,247,.18) 300px, transparent 440px)}
+.hero .htop{position:relative;display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.hero .logo{display:flex;align-items:center;gap:10px;color:#fff}
+.hero .logo .mk{width:34px;height:34px;border-radius:11px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:16px}
+.hero .logo b{font-family:"Playfair Display",serif;font-size:18px;font-weight:600;letter-spacing:.01em}
+.hero .pro{font-size:10px;font-weight:800;letter-spacing:.1em;color:#0f766e;background:#fff;border-radius:20px;padding:4px 9px}
+.hero h2{position:relative;color:#fff;font-family:"Playfair Display",serif;font-size:27px;font-weight:600;line-height:1.12;margin-bottom:6px}
+.hero p{position:relative;color:rgba(255,255,255,.82);font-size:13.5px;line-height:1.5;max-width:30ch}
+.hero .cond{position:relative;display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.hero .pill{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:11.5px;font-weight:600;padding:7px 12px;border-radius:20px}
+
+/* quick actions */
+.qgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+.qcard{text-align:left;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 6px 18px -12px rgba(16,42,38,.4);transition:transform .14s}
+.qcard:active{transform:scale(.97)}
+.qcard .ic{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:30px;background:var(--teal-soft);color:var(--teal)}
+.qcard .qt{font-weight:700;font-size:15px}
+.qcard .qd{color:var(--mut);font-size:11.5px;margin-top:2px;line-height:1.35}
+
+/* generic */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:0 6px 18px -14px rgba(16,42,38,.35)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-weight:700;font-size:15px;padding:14px 18px;border-radius:14px;border:1px solid var(--line2);background:var(--card);color:var(--ink);width:100%;cursor:pointer;font-family:inherit}
+.btn.primary{background:var(--teal);color:#fff;border:none;box-shadow:0 10px 22px -12px rgba(15,118,110,.8)}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--red);border-color:#eccfca}
+.muted{color:var(--mut);font-size:13.5px;line-height:1.55}
+.tiny{color:var(--mut);font-size:11.5px;line-height:1.5}
+.field{width:100%;background:var(--card);border:1px solid var(--line2);border-radius:13px;color:var(--ink);padding:13px 14px;font-size:15px;font-family:inherit;outline:none}
+.field:focus{border-color:var(--teal)}
+.field::placeholder{color:#a7b5b0}
+input,textarea,select{font-family:inherit}
+a{color:var(--teal);text-decoration:none}
+
+/* rows / list */
+.row{display:flex;align-items:center;gap:13px;background:var(--card);border:1px solid var(--line);border-radius:15px;padding:13px;margin-bottom:10px;width:100%;text-align:left;color:var(--ink);box-shadow:0 5px 16px -14px rgba(16,42,38,.35);transition:transform .14s}
+.row:active{transform:scale(.99)}
+.row .ic{width:46px;height:46px;border-radius:13px;flex:none;display:flex;align-items:center;justify-content:center;font-size:20px;background:var(--sand2);color:var(--teal)}
+.row .meta{flex:1;min-width:0}
+.row .meta .t{font-weight:700;font-size:15px}
+.row .meta .s{color:var(--mut);font-size:12px;margin-top:2px}
+.row .chev{color:#b9c6c1;font-size:13px}
+
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:5px 10px;border-radius:20px}
+.chip.legal{background:#e3f5ea;color:var(--green)}
+.chip.grade{background:var(--sand2);color:#8a6d28}
+.disc{display:flex;gap:11px;background:#fff8ec;border:1px solid #f0e2c4;border-radius:14px;padding:13px 14px;margin-top:16px}
+.disc i{color:var(--amber);font-size:15px;margin-top:1px;flex:none}
+.disc div{font-size:12px;color:#7a6630;line-height:1.5}.disc b{color:#5c4d24}
+
+/* camera */
+.viewfinder{position:relative;width:100%;aspect-ratio:3/4;max-height:52vh;background:#06231f;border-radius:18px;overflow:hidden;border:1px solid var(--line2);display:flex;align-items:center;justify-content:center}
+.viewfinder video{width:100%;height:100%;object-fit:cover}
+.vf-frame{position:absolute;inset:14%;border:2px dashed rgba(255,255,255,.6);border-radius:16px;pointer-events:none}
+.vf-ph{color:#cfe;text-align:center;padding:20px}.vf-ph i{font-size:38px;display:block;margin-bottom:12px;color:#7fd8cd}
+.shutter{width:64px;height:64px;border-radius:50%;background:#fff;border:4px solid var(--teal);margin:16px auto 0;display:block;box-shadow:0 6px 18px -6px rgba(15,118,110,.7)}
+.pickgrid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:8px}
+.pick{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:13px;text-align:left;color:var(--ink);cursor:pointer}
+.pick .pic{width:40px;height:40px;border-radius:11px;background:var(--teal-soft);color:var(--teal);display:flex;align-items:center;justify-content:center;font-size:17px;flex:none}
+.pick .pn{font-size:13px;font-weight:700}.pick .pd{font-size:10.5px;color:var(--mut)}
+
+/* species detail bits */
+.spec-hero{border-radius:16px;overflow:hidden;background:linear-gradient(150deg,#0f766e,#0a4d50);padding:20px;color:#fff;position:relative;margin-bottom:14px}
+.spec-hero::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(108deg,rgba(255,255,255,.12) 0 2px,transparent 2px 24px);opacity:.5;-webkit-mask-image:linear-gradient(#000,transparent);mask-image:linear-gradient(#000,transparent)}
+.spec-hero .si{position:relative;font-size:30px;margin-bottom:8px}
+.spec-hero h3{position:relative;font-family:"Playfair Display",serif;font-size:23px;font-weight:600}
+.spec-hero .sci{position:relative;font-style:italic;font-size:12.5px;opacity:.85;margin-top:2px}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.kv:last-child{border-bottom:none}.kv .k{color:var(--mut)}.kv .v{font-weight:700;text-align:right;max-width:62%}
+.idlist{list-style:none;display:grid;gap:8px;margin-top:4px}
+.idlist li{display:flex;gap:10px;font-size:13.5px;line-height:1.45}.idlist li i{color:var(--teal);margin-top:3px;font-size:11px;flex:none}
+.gradeT{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
+.gradeT td{padding:8px 6px;border-bottom:1px solid var(--line)}.gradeT td:first-child{font-weight:700}
+
+/* log form */
+.catch-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.catch-row select{flex:1}
+.catch-row .num{width:84px}
+.catch-row button{flex:none;background:none;border:none;color:var(--red);font-size:16px;padding:8px}
+.logthumb{width:100%;height:150px;object-fit:cover;border-radius:13px;border:1px solid var(--line2);margin-top:8px}
+.up-label{display:flex;align-items:center;justify-content:center;gap:9px;border:1.5px dashed var(--line2);border-radius:13px;padding:15px;color:var(--teal);font-weight:700;font-size:13.5px;cursor:pointer;margin-top:8px}
+.up-label input{display:none}
+
+/* bottom nav */
+#nav{position:absolute;left:0;right:0;bottom:0;height:calc(74px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);
+  background:rgba(255,255,255,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line);
+  display:flex;align-items:flex-start;justify-content:space-around;padding-top:10px;z-index:40}
+.tab{display:flex;flex-direction:column;align-items:center;gap:4px;color:#9fb0ab;font-size:9.5px;font-weight:600;width:62px;background:none;border:none;cursor:pointer}
+.tab i{font-size:18px}.tab.on{color:var(--teal)}
+
+/* overlay sheet / modal */
+.overlay{position:absolute;inset:0;z-index:80;background:rgba(10,30,27,.5);backdrop-filter:blur(3px);display:none;align-items:flex-end;justify-content:center}
+.overlay.show{display:flex;animation:fade .25s ease}
+.sheet{background:var(--bg);border-radius:24px 24px 0 0;width:100%;max-width:540px;max-height:92vh;overflow-y:auto;padding:22px 18px calc(26px + env(safe-area-inset-bottom))}
+.sheet .grab{width:40px;height:4px;border-radius:4px;background:var(--line2);margin:0 auto 16px}
+.sheet h3{font-family:"Playfair Display",serif;font-size:21px;font-weight:600;margin-bottom:4px}
+.toast{position:absolute;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(14px);background:#102a26;color:#fff;font-size:13px;font-weight:600;padding:11px 18px;border-radius:13px;opacity:0;pointer-events:none;transition:.3s;z-index:90;white-space:nowrap;box-shadow:0 12px 30px -10px rgba(0,0,0,.5)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* gate */
+#gate{position:absolute;inset:0;z-index:100;background:linear-gradient(160deg,#0f766e,#0a4d50);display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden}
+#gate::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(108deg,rgba(255,255,255,.13) 0 2px,transparent 2px 26px);opacity:.5;-webkit-mask-image:linear-gradient(#000,transparent 70%);mask-image:linear-gradient(#000,transparent 70%)}
+#gate .gwrap{position:relative;background:var(--bg);border-radius:26px 26px 0 0;padding:26px 22px calc(26px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto}
+#gate .gmk{width:56px;height:56px;border-radius:16px;background:var(--teal-soft);color:var(--teal);display:flex;align-items:center;justify-content:center;font-size:25px;margin-bottom:16px}
+#gate h2{font-family:"Playfair Display",serif;font-size:27px;font-weight:600;margin-bottom:4px}
+.warn-item{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}
+.warn-item i{color:var(--teal);font-size:15px;margin-top:2px;width:18px;text-align:center;flex:none}
+.warn-item div{font-size:13px;color:var(--ink2);line-height:1.5}.warn-item b{color:var(--ink)}
+.gcheck{display:flex;gap:11px;align-items:flex-start;background:var(--card);border:1px solid var(--line2);border-radius:13px;padding:13px;margin:8px 0 14px;cursor:pointer}
+.gcheck .box{width:22px;height:22px;border-radius:6px;border:2px solid var(--line2);flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;color:transparent}
+.gcheck.on .box{background:var(--teal);border-color:var(--teal);color:#fff}
+.gcheck span{font-size:12.5px;color:var(--ink2);line-height:1.45}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--card);border:1px solid var(--line);padding:15px 16px;margin-bottom:1px}
+.set-row:first-of-type{border-radius:14px 14px 0 0}.set-row:last-of-type{border-radius:0 0 14px 14px}
+.set-row .sl{font-size:14px;font-weight:600}.set-row .sd{font-size:11.5px;color:var(--mut);margin-top:2px}
+
+/* clam scanner */
+.scan-stage{position:relative;width:100%;aspect-ratio:3/4;max-height:54vh;background:#06231f;border-radius:18px;overflow:hidden;border:1px solid var(--line2)}
+.scan-stage video{width:100%;height:100%;object-fit:cover;display:block}
+.scan-stage canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.scan-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#cfe;text-align:center;padding:24px;font-size:13.5px;line-height:1.5}
+.scan-ph i{font-size:38px;color:#7fd8cd}
+.vf-chips{position:absolute;left:0;right:0;bottom:12px;display:flex;justify-content:center;gap:8px;z-index:3}
+.vf-chip{background:rgba(6,35,31,.62);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:11.5px;font-weight:700;padding:7px 13px;border-radius:20px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);cursor:pointer}
+.vf-chip.on{background:var(--teal);border-color:var(--teal)}
+
+/* tide timer */
+.spin{width:30px;height:30px;border:3px solid var(--line2);border-top-color:var(--teal);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tide-card{padding:16px}
+.tide-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.tide-loc{font-size:12.5px;font-weight:700;color:var(--ink2);display:flex;align-items:center;gap:7px;min-width:0}
+.tide-loc i{color:var(--teal);flex:none}
+.tide-loc span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tide-chg{font-size:11px;color:var(--teal);font-weight:700;background:none;border:none;cursor:pointer;flex:none}
+.tide-next{display:flex;align-items:center;gap:13px}
+.tide-ic{width:46px;height:46px;border-radius:13px;flex:none;display:flex;align-items:center;justify-content:center;font-size:20px;background:var(--teal-soft);color:var(--teal)}
+.tide-big{font-size:19px;font-weight:600;font-family:"Playfair Display",serif;line-height:1.1}
+.tide-sub{font-size:12px;color:var(--mut);margin-top:2px}
+.tide-sched{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px;padding-top:12px;border-top:1px solid var(--line)}
+.tide-pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:6px 10px;border-radius:20px}
+.tide-pill.lowt{background:#e3f5ea;color:#1f8a4d}
+.tide-pill.hight{background:#e7eef7;color:#2c6e9e}
+.tide-pill.now{box-shadow:0 0 0 2px var(--teal)}
+
+/* AR scanner refinements (inspired by reference) */
+.scan-badge{position:absolute;top:12px;left:12px;display:none;align-items:center;gap:6px;background:rgba(6,35,31,.72);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.06em;padding:5px 10px;border-radius:20px;z-index:3;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.scan-badge.on{display:inline-flex}
+.scan-badge i{color:#22e3c6;font-size:8px;animation:blinkdot 1.2s steps(2) infinite}
+@keyframes blinkdot{50%{opacity:.25}}
+.scan-status{display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:11px 13px;margin-top:12px;font-size:12.5px;color:var(--ink2);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.scan-status i{color:var(--teal);font-size:15px;flex:none}
+.scan-status b{font-weight:700}
+.det-bar{height:5px;border-radius:5px;background:var(--line2);overflow:hidden;margin-top:6px}
+.det-bar>i{display:block;height:100%;border-radius:5px}
+
+/* teach the AI */
+.teach-cam{position:relative;width:100%;aspect-ratio:4/3;max-height:46vh;background:#06231f;border-radius:18px;overflow:hidden;border:1px solid var(--line2);display:flex;align-items:center;justify-content:center}
+.teach-cam video{width:100%;height:100%;object-fit:cover}
+.teach-reticle{position:absolute;inset:16% 22%;border:2px dashed rgba(255,255,255,.6);border-radius:14px;pointer-events:none}
+.teach-pred{position:absolute;left:12px;right:12px;bottom:12px;background:rgba(6,35,31,.72);color:#fff;border-radius:12px;padding:10px 12px;font-size:13px;font-weight:700;text-align:center;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.teach-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.teach-b{display:flex;flex-direction:column;align-items:center;gap:6px;border:none;border-radius:14px;padding:14px 8px;color:#fff;font-weight:700;font-size:12.5px;cursor:pointer;text-align:center;line-height:1.3}
+.teach-b.pos{background:var(--green)} .teach-b.neg{background:#7c8a86}
+.teach-b .cnt{font-size:11px;opacity:.9;font-weight:600}
+/* guide segments + fishing */
+.seg{display:flex;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:5px;margin-bottom:16px;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.seg button{flex:1;background:none;border:none;color:var(--mut);font-weight:700;font-size:13.5px;padding:10px;border-radius:9px;cursor:pointer}
+.seg button.on{background:var(--teal);color:#fff}
+
+/* ===================== COASTAL LIGHT + CYBER HUD DESIGN SYSTEM ===================== */
+/* pillowy glass cards */
+.card,.qcard,.row,.field,.sheet,.set-row,.pick,.disc,.up-label,.tide-card,.am-status,.am-mcard,.gfeat,.scan-status,.seg{
+  backdrop-filter:blur(22px) saturate(1.3)!important;-webkit-backdrop-filter:blur(22px) saturate(1.3)!important;
+  box-shadow:0 14px 32px -18px rgba(22,96,99,.45), 0 2px 8px -5px rgba(22,96,99,.18)!important;
+}
+/* pill gradient buttons with soft glow */
+.btn{border-radius:40px;font-weight:700}
+.btn.primary{background:linear-gradient(96deg,#166063,#2aa39a 58%,#46c4b6)!important;color:#fff!important;border:none!important;
+  box-shadow:0 15px 32px -10px rgba(22,96,99,.55), inset 0 0 0 1px rgba(255,255,255,.14)!important}
+.btn.ghost{border-radius:40px;background:rgba(255,255,255,.62)}
+.seg button.on{background:linear-gradient(96deg,#166063,#46c4b6)}
+/* editorial serif headers + Outfit metrics */
+h1.h,.section-h,.tide-big,.am-title,.gfeat-name,.spec-hero h3,.sheet h3,.am-feat-h,.serif{font-family:"Playfair Display",Georgia,serif}
+/* floating capsule dock */
+#nav{left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-bottom));height:62px;padding:7px 8px 0;border-radius:34px;
+  border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.8);
+  backdrop-filter:blur(20px) saturate(1.35);-webkit-backdrop-filter:blur(20px) saturate(1.35);
+  box-shadow:0 18px 44px -14px rgba(22,96,99,.42);align-items:center;justify-content:space-around}
+.tab{height:46px;justify-content:center;border-radius:23px;width:60px;gap:3px;transition:.2s}
+.tab.on{color:#fff;background:linear-gradient(120deg,#166063,#46c4b6);box-shadow:0 9px 18px -8px rgba(22,96,99,.6)}
+.tab.on i{color:#fff}
+.scroll{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
+/* Cyber HUD scanner surfaces */
+.scan-stage,.teach-cam{background:#121E21}
+.vf-chip.on{background:var(--neon);border-color:var(--neon);color:#062a2c}
+.scan-badge i{color:var(--neon)}
+
+/* first-run welcome / AI intro */
+#intro{position:absolute;inset:0;z-index:110;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:28px 20px;overflow-y:auto;
+  background:linear-gradient(160deg,#1a7a76,#0c4346 70%)}
+#intro::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(108deg,rgba(255,255,255,.10) 0 2px,transparent 2px 26px);opacity:.5;-webkit-mask-image:linear-gradient(#000,transparent 70%);mask-image:linear-gradient(#000,transparent 70%)}
+.intro-card{position:relative;background:rgba(255,255,255,.92);border-radius:28px;padding:28px 22px;max-width:440px;width:100%;text-align:center;
+  box-shadow:0 34px 70px -24px rgba(0,0,0,.45);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.intro-mascot{width:78px;height:78px;margin:0 auto 14px;background:#eafaf7;border-radius:24px;padding:9px}
+#intro h2{font-family:"Playfair Display",Georgia,serif;font-size:27px;font-weight:700;color:var(--ink);line-height:1.1}
+#intro h2 b{color:var(--teal)}
+.intro-tag{color:var(--mut);font-size:14px;margin:5px 0 8px;font-weight:600}
+.intro-ai{display:inline-flex;align-items:center;gap:7px;background:var(--teal-soft);color:var(--teal);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;border-radius:20px;margin-bottom:20px}
+.intro-steps{display:grid;gap:15px;text-align:left;margin-bottom:20px}
+.istep{display:flex;gap:13px;align-items:flex-start}
+.istep .in{width:32px;height:32px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;background:linear-gradient(125deg,#166063,#46c4b6);font-size:14px;box-shadow:0 6px 14px -6px rgba(22,96,99,.6)}
+.istep .it b{color:var(--ink);font-size:14.5px}
+.istep .it div{font-size:13px;line-height:1.45;color:var(--ink2);margin-top:2px}
+.intro-creed{font-size:11px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--teal);margin-bottom:18px}
+/* home: keep the hero photo at top, soft sand veil below so text reads */
+#screen-home .scroll{background:linear-gradient(to bottom, transparent 0, transparent 300px, rgba(244,241,234,.5) 480px, rgba(244,241,234,.86) 740px)}
+#screen-home .section-h{color:var(--ink)}
+#screen-home .muted{color:var(--ink2)}
+</style>
+</head>
+<body>
+
+<!-- FIRST-RUN WELCOME / AI INTRO -->
+<div id="intro">
+  <div class="intro-card">
+    <div class="intro-mascot"><svg viewBox="0 0 64 64" style="width:100%;height:100%"><path d="M32 5c-.4 0-5.2 6.4-5.2 10.2a5.2 5.2 0 0 0 10.4 0C37.2 11.4 32.4 5 32 5z" fill="#5cd0e3"/><path d="M13 35q19-3 38 0-2 14-19 16-17-2-19-16z" fill="#0e6f68"/><path d="M15 35q17-19 34 0-8-5-17-5-9 0-17 5z" fill="#16a99d"/><g stroke="#0c5f59" stroke-width="1.3" stroke-linecap="round" fill="none"><path d="M32 31v4"/><path d="M25 32l1.5 3.4"/><path d="M39 32l-1.5 3.4"/><path d="M19 33.5l3 3"/><path d="M45 33.5l-3 3"/></g><circle cx="32" cy="39" r="6.2" fill="#fff6e2"/><circle cx="29.7" cy="38.6" r="1.05" fill="#0e3b38"/><circle cx="34.3" cy="38.6" r="1.05" fill="#0e3b38"/><path d="M30 41q2 2 4 0" stroke="#0e3b38" stroke-width="1.1" fill="none" stroke-linecap="round"/><circle cx="27.4" cy="40.4" r="1.2" fill="#ff9bb0" opacity=".6"/><circle cx="36.6" cy="40.4" r="1.2" fill="#ff9bb0" opacity=".6"/></svg></div>
+    <h2>Welcome to <b>Clam Finder</b></h2>
+    <div class="intro-tag">Your AI clam-finding partner</div>
+    <div class="intro-ai"><i class="fa-solid fa-wand-magic-sparkles"></i> Powered by AI Vision</div>
+    <div class="intro-steps">
+      <div class="istep"><div class="in">1</div><div class="it"><b>Point your camera at the sand</b><div>At low tide, sweep slowly over the wet flats.</div></div></div>
+      <div class="istep"><div class="in">2</div><div class="it"><b>AI Vision spots the signs</b><div>It reads the live video for siphon holes, sand disturbances, bubbles &amp; little squirts of movement — the tell-tale signs of buried clams.</div></div></div>
+      <div class="istep"><div class="in">3</div><div class="it"><b>Dig there &amp; log your haul</b><div>Tap a marked spot, confirm the species, and dig gently. You can even teach the AI your own beach.</div></div></div>
+    </div>
+    <div class="intro-creed">Respect · Identify · Conserve</div>
+    <button class="btn primary" onclick="startIntro()"><i class="fa-solid fa-expand"></i> Start AI Vision Scan</button>
+  </div>
+</div>
+
+<!-- GATE -->
+<div id="gate">
+  <div class="gwrap">
+    <div class="gmk" style="background:#eafaf7;padding:6px"><svg viewBox="0 0 64 64" style="width:100%;height:100%"><path d="M32 5c-.4 0-5.2 6.4-5.2 10.2a5.2 5.2 0 0 0 10.4 0C37.2 11.4 32.4 5 32 5z" fill="#5cd0e3"/><path d="M13 35q19-3 38 0-2 14-19 16-17-2-19-16z" fill="#0e6f68"/><path d="M15 35q17-19 34 0-8-5-17-5-9 0-17 5z" fill="#16a99d"/><g stroke="#0c5f59" stroke-width="1.3" stroke-linecap="round" fill="none"><path d="M32 31v4"/><path d="M25 32l1.5 3.4"/><path d="M39 32l-1.5 3.4"/><path d="M19 33.5l3 3"/><path d="M45 33.5l-3 3"/></g><circle cx="32" cy="39" r="6.2" fill="#fff6e2"/><circle cx="29.7" cy="38.6" r="1.05" fill="#0e3b38"/><circle cx="34.3" cy="38.6" r="1.05" fill="#0e3b38"/><path d="M30 41q2 2 4 0" stroke="#0e3b38" stroke-width="1.1" fill="none" stroke-linecap="round"/><circle cx="27.4" cy="40.4" r="1.2" fill="#ff9bb0" opacity=".6"/><circle cx="36.6" cy="40.4" r="1.2" fill="#ff9bb0" opacity=".6"/></svg></div>
+    <h2>Clam <span style="color:var(--teal)">Finder</span></h2>
+    <div class="tiny" style="letter-spacing:.18em;text-transform:uppercase;font-weight:700;margin:2px 0 18px">Long Island Sound field tool</div>
+    <div class="warn-item"><i class="fa-solid fa-circle-info"></i><div>Clam Finder helps you <b>identify shellfish, learn the legal sizes, and log your haul</b>. It's a helpful companion — not an official authority.</div></div>
+    <div class="warn-item"><i class="fa-solid fa-triangle-exclamation"></i><div><b>Only harvest from certified (open) waters.</b> Shellfish from closed or uncertified areas can carry bacteria or biotoxins and make you seriously ill. Always check current closures.</div></div>
+    <div class="warn-item"><i class="fa-solid fa-ruler"></i><div>Size and limit info here is <b>general guidance</b>. Confirm current rules with <b>NY DEC</b> and <b>CT Dept. of Agriculture</b>, and your town — they change and vary by location.</div></div>
+    <div class="warn-item"><i class="fa-solid fa-id-card"></i><div>Get any required <b>permit/license</b> for your town or state, and never sell or barter a recreational catch.</div></div>
+    <div class="gcheck" id="gcheck" onclick="toggleAck()"><div class="box"><i class="fa-solid fa-check"></i></div><span>I understand I must only harvest legal-size shellfish from certified open waters, and I'll verify current local regulations.</span></div>
+    <button class="btn primary" id="gate-btn" onclick="acknowledge()" style="opacity:.5">Start clamming</button>
+    <p class="tiny" style="text-align:center;margin-top:12px">Be safe out there 🐚</p>
+  </div>
+</div>
+
+<div id="app" style="visibility:hidden">
+
+  <!-- HOME -->
+  <div class="screen active" id="screen-home"><div class="scroll">
+    <div class="hero">
+      <div class="htop">
+        <div class="logo"><div class="mk" style="background:rgba(255,255,255,.92);padding:3px"><svg viewBox="0 0 64 64" style="width:100%;height:100%"><path d="M32 5c-.4 0-5.2 6.4-5.2 10.2a5.2 5.2 0 0 0 10.4 0C37.2 11.4 32.4 5 32 5z" fill="#5cd0e3"/><path d="M13 35q19-3 38 0-2 14-19 16-17-2-19-16z" fill="#0e6f68"/><path d="M15 35q17-19 34 0-8-5-17-5-9 0-17 5z" fill="#16a99d"/><g stroke="#0c5f59" stroke-width="1.3" stroke-linecap="round" fill="none"><path d="M32 31v4"/><path d="M25 32l1.5 3.4"/><path d="M39 32l-1.5 3.4"/><path d="M19 33.5l3 3"/><path d="M45 33.5l-3 3"/></g><circle cx="32" cy="39" r="6.2" fill="#fff6e2"/><circle cx="29.7" cy="38.6" r="1.05" fill="#0e3b38"/><circle cx="34.3" cy="38.6" r="1.05" fill="#0e3b38"/><path d="M30 41q2 2 4 0" stroke="#0e3b38" stroke-width="1.1" fill="none" stroke-linecap="round"/><circle cx="27.4" cy="40.4" r="1.2" fill="#ff9bb0" opacity=".6"/><circle cx="36.6" cy="40.4" r="1.2" fill="#ff9bb0" opacity=".6"/></svg></div><b>Clam Finder</b></div>
+      </div>
+      <h2 id="greet">Good day for a dig.</h2>
+      <p>Identify your catch, check the legal size, and log the haul — all from Long Island Sound.</p>
+      <div class="cond">
+        <div class="pill"><i class="fa-solid fa-location-dot"></i> Long Island Sound</div>
+        <div class="pill"><i class="fa-solid fa-water"></i> Best at low tide</div>
+      </div>
+    </div>
+    <div class="pad">
+      <div class="card" style="margin-top:-30px;position:relative;z-index:2;text-align:center;padding:20px 18px">
+        <div class="serif" style="font-size:19px;font-weight:600;margin-bottom:4px">Ready to find some clams?</div>
+        <div class="muted" style="margin-bottom:14px">Point your camera at the wet sand and let AI Vision scan for siphon holes and movement.</div>
+        <button class="btn primary" onclick="go('identify')" style="background:linear-gradient(95deg,#0f766e,#15b8a6);font-size:16px"><i class="fa-solid fa-expand"></i> Scan with AI Vision</button>
+      </div>
+      <div class="card" style="margin-top:14px;padding:16px">
+        <div class="serif" style="font-size:16px;font-weight:600;margin-bottom:7px"><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--teal);margin-right:7px"></i>How the AI helps</div>
+        <div class="muted" style="margin-bottom:10px">When you scan, Clam Finder reads the live video for the tell-tale signs experienced clammers look for:</div>
+        <div style="display:grid;gap:8px;font-size:13px">
+          <div style="display:flex;gap:10px;align-items:flex-start"><i class="fa-solid fa-circle-dot" style="color:var(--teal);margin-top:3px;font-size:11px"></i><div><b>Siphon holes</b> — small dark dimples or "keyholes" where a clam's neck reaches the surface.</div></div>
+          <div style="display:flex;gap:10px;align-items:flex-start"><i class="fa-solid fa-bullseye" style="color:var(--teal);margin-top:3px;font-size:11px"></i><div><b>Sand disturbances</b> — little donuts, bumps, or dimples in otherwise smooth sand.</div></div>
+          <div style="display:flex;gap:10px;align-items:flex-start"><i class="fa-solid fa-droplet" style="color:var(--teal);margin-top:3px;font-size:11px"></i><div><b>Squirts &amp; movement</b> — a clam breathing can spit water as you walk past.</div></div>
+        </div>
+        <div class="tiny" style="margin-top:11px">You can also <b>teach it your sand</b> (in Scan) so it learns what real signs look like where <i>you</i> dig. It's a helper, not a guarantee — always dig gently to confirm.</div>
+      </div>
+      <div class="card tide-card" id="tide-card" style="margin-top:14px"></div>
+      <div class="qgrid">
+        <button class="qcard" onclick="go('identify')"><div class="ic"><i class="fa-solid fa-location-crosshairs"></i></div><div class="qt">Scan sand</div><div class="qd">Find holes &amp; movement</div></button>
+        <button class="qcard" onclick="openLog()"><div class="ic"><i class="fa-solid fa-plus"></i></div><div class="qt">Log a haul</div><div class="qd">Record today's catch</div></button>
+        <button class="qcard" onclick="go('species')"><div class="ic"><i class="fa-solid fa-book-open"></i></div><div class="qt">Species guide</div><div class="qd">IDs &amp; legal sizes</div></button>
+        <button class="qcard" onclick="go('log')"><div class="ic"><i class="fa-solid fa-trophy"></i></div><div class="qt">My log</div><div class="qd">Sessions &amp; brag reports</div></button>
+      </div>
+      <div class="section-h">Recent sessions</div>
+      <div id="home-recent"></div>
+      <div class="disc"><i class="fa-solid fa-shield-halved"></i><div><b>Before you keep anything:</b> make sure the area is open/certified and your catch meets the legal size. Check closures with NY DEC or CT Dept. of Agriculture.</div></div>
+    </div>
+  </div></div>
+
+  <!-- SCANNER -->
+  <div class="screen" id="screen-identify"><div class="scroll"><div class="pad" style="padding-top:max(54px,env(safe-area-inset-top))">
+    <div class="eyebrow"><i class="fa-solid fa-expand"></i> AI Vision Scanner</div>
+    <h1 class="h" style="margin:8px 0 6px">Find clams in the sand</h1>
+    <div class="sub" style="margin-bottom:14px">Point your camera at wet sand in shallow water. The scanner highlights dark siphon holes and little squirts of movement — likely clam signs.</div>
+    <div class="scan-stage" id="scan-stage">
+      <video id="scan-video" playsinline muted></video>
+      <canvas id="scan-ov"></canvas>
+      <div class="scan-badge" id="scan-badge"><i class="fa-solid fa-circle"></i> LIVE</div>
+      <div class="scan-ph" id="scan-ph"><i class="fa-solid fa-water"></i><div>Tap <b>Start scanning</b> and sweep slowly over the wet sand.</div></div>
+      <div class="vf-chips">
+        <button class="vf-chip on" data-f="normal" onclick="setFilter('normal')">Normal</button>
+        <button class="vf-chip" data-f="contrast" onclick="setFilter('contrast')">Contrast</button>
+        <button class="vf-chip" data-f="heat" onclick="setFilter('heat')">Heat view</button>
+      </div>
+    </div>
+    <button class="btn primary" id="scan-start" style="margin-top:14px" onclick="startScan()"><i class="fa-solid fa-camera"></i> Start scanning</button>
+    <button class="btn ghost" style="margin-top:10px" onclick="go('teach')"><i class="fa-solid fa-brain"></i> Teach the AI to spot clams</button>
+    <div class="scan-status" id="scan-tide"><i class="fa-solid fa-water"></i><div>Set your tide spot on Home to see the dig window here.</div></div>
+    <div id="det-list" style="margin-top:14px"></div>
+    <div class="section-h">Or identify by sight</div>
+    <div class="pickgrid" id="id-pick"></div>
+    <div class="disc"><i class="fa-solid fa-circle-info"></i><div><b>How it works, honestly:</b> this is an <b>on-device assist</b> — it flags dark spots and movement in the live image, not a certified clam detector. "Heat view" is a contrast filter, <b>not a real thermal sensor</b> (phones don't have one). Always dig gently and measure to confirm.</div></div>
+  </div></div></div>
+
+  <!-- SPECIES -->
+  <div class="screen" id="screen-species"><div class="scroll"><div class="pad" style="padding-top:max(54px,env(safe-area-inset-top))">
+    <div class="eyebrow"><i class="fa-solid fa-book-open"></i> Field guide</div>
+    <h1 class="h" style="margin:8px 0 6px">Know your catch</h1>
+    <div class="sub" style="margin-bottom:16px">Clams and fish of the Long Island Sound — IDs, legal sizes, seasons and bait.</div>
+    <div class="seg"><button id="seg-clams" class="on" onclick="setGuide('clams')">Clams</button><button id="seg-fish" onclick="setGuide('fish')">Fish</button></div>
+    <div id="species-list"></div>
+    <div id="fish-list" style="display:none"></div>
+    <div class="disc"><i class="fa-solid fa-triangle-exclamation"></i><div>Sizes, seasons &amp; limits shown are <b>general 2026 guidance</b> for NY &amp; CT and can change. Always confirm current rules (NY DEC / CT Dept. of Agriculture) before keeping anything.</div></div>
+  </div></div></div>
+
+  <!-- LOG -->
+  <div class="screen" id="screen-log"><div class="scroll"><div class="pad" style="padding-top:max(54px,env(safe-area-inset-top))">
+    <div class="eyebrow"><i class="fa-solid fa-trophy"></i> My log</div>
+    <h1 class="h" style="margin:8px 0 6px">Your hauls</h1>
+    <div class="sub" style="margin-bottom:16px">Every session you log, with brag reports ready to share.</div>
+    <button class="btn primary" onclick="openLog()"><i class="fa-solid fa-plus"></i> Log a new haul</button>
+    <div id="log-list" style="margin-top:16px"></div>
+  </div></div></div>
+
+  <!-- MORE -->
+  <div class="screen" id="screen-more"><div class="scroll"><div class="pad" style="padding-top:max(54px,env(safe-area-inset-top))">
+    <div class="eyebrow"><i class="fa-solid fa-circle-info"></i> More</div>
+    <h1 class="h" style="margin:8px 0 16px">About &amp; safety</h1>
+    <div class="card" style="margin-bottom:16px">
+      <div class="serif" style="font-size:17px;font-weight:600;margin-bottom:8px">Harvest safely &amp; legally</div>
+      <p class="muted" style="margin-bottom:10px">Shellfish filter their surroundings, so they concentrate bacteria and biotoxins from polluted or uncertified water. Harvesting from closed areas can cause serious illness.</p>
+      <p class="muted">Always: harvest only from <b>certified/open</b> waters, check current <b>closures</b> (rain often triggers temporary closures), keep only <b>legal-size</b> shellfish, observe daily limits, and carry any required <b>permit</b>.</p>
+    </div>
+    <div class="section-h" style="margin-top:6px">Official resources</div>
+    <button class="row" onclick="extLink('https://dec.ny.gov/things-to-do/shellfishing')"><div class="ic"><i class="fa-solid fa-landmark"></i></div><div class="meta"><div class="t">NY DEC — Shellfishing</div><div class="s">Regulations, limits &amp; closures</div></div><i class="fa-solid fa-arrow-up-right-from-square chev"></i></button>
+    <button class="row" onclick="extLink('https://portal.ct.gov/doag/aquaculture1/aquaculture/recreational-shellfishing')"><div class="ic"><i class="fa-solid fa-landmark"></i></div><div class="meta"><div class="t">CT Dept. of Agriculture</div><div class="s">Recreational shellfishing &amp; maps</div></div><i class="fa-solid fa-arrow-up-right-from-square chev"></i></button>
+    <div class="section-h">App</div>
+    <div class="set-row" onclick="clearData()"><div><div class="sl" style="color:var(--red)">Clear all data</div><div class="sd">Erase your logged sessions on this device</div></div><i class="fa-solid fa-trash" style="color:var(--red)"></i></div>
+    <p class="tiny" style="text-align:center;margin:16px 0 4px">Clam Finder · v2 · field companion<br/>Not an official authority. Verify all rules locally.</p>
+  </div></div></div>
+
+  <!-- TEACH THE AI -->
+  <div class="screen" id="screen-teach"><div class="scroll"><div class="pad" style="padding-top:max(54px,env(safe-area-inset-top))">
+    <div class="eyebrow"><i class="fa-solid fa-brain"></i> Teach the AI</div>
+    <h1 class="h" style="margin:8px 0 6px">Teach it your sand</h1>
+    <div class="sub" style="margin-bottom:14px">Show the camera a few real clam signs (siphon holes, dimples, bubbles) and a few patches of empty sand. The app learns <b>on your device</b> — no internet after it loads.</div>
+    <div class="teach-cam" id="teach-cam">
+      <div class="vf-ph" id="teach-ph" style="color:#cfe;text-align:center;padding:22px"><i class="fa-solid fa-camera" style="font-size:36px;color:#7fd8cd;display:block;margin-bottom:10px"></i><div>Open the camera, point at the sand, and add examples.</div></div>
+      <div class="teach-reticle" id="teach-reticle" style="display:none"></div>
+      <div class="teach-pred" id="teach-pred" style="display:none"></div>
+    </div>
+    <button class="btn primary" id="teach-start" style="margin-top:14px" onclick="teachStart()"><i class="fa-solid fa-camera"></i> Open camera</button>
+    <div class="teach-btns" id="teach-btns" style="display:none">
+      <button class="teach-b pos" onclick="teachAdd('clam')"><i class="fa-solid fa-plus"></i> This is a clam sign <span class="cnt" id="cnt-clam">0 added</span></button>
+      <button class="teach-b neg" onclick="teachAdd('sand')"><i class="fa-solid fa-plus"></i> This is empty sand <span class="cnt" id="cnt-sand">0 added</span></button>
+    </div>
+    <div id="teach-status" class="tiny" style="margin-top:13px"></div>
+    <button class="btn ghost" style="margin-top:12px" onclick="teachReset()"><i class="fa-solid fa-rotate-left"></i> Reset training</button>
+    <div class="disc"><i class="fa-solid fa-circle-info"></i><div><b>How it works:</b> an on-device AI (MobileNet) learns from <b>your</b> examples — nothing is uploaded. Add 5-10 of each from different angles &amp; light. It's a learning aid, not a guarantee — always dig gently to confirm.</div></div>
+  </div></div></div>
+
+  <div id="nav">
+    <button class="tab on" data-s="home" onclick="go('home')"><i class="fa-solid fa-house"></i>Home</button>
+    <button class="tab" data-s="identify" onclick="go('identify')"><i class="fa-solid fa-camera"></i>Scan</button>
+    <button class="tab" data-s="species" onclick="go('species')"><i class="fa-solid fa-book-open"></i>Guide</button>
+    <button class="tab" data-s="log" onclick="go('log')"><i class="fa-solid fa-trophy"></i>Log</button>
+    <button class="tab" data-s="more" onclick="go('more')"><i class="fa-solid fa-ellipsis"></i>More</button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeSheet()"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ===================== DATA ===================== */
+const SPECIES={
+  quahog:{name:"Hard Clam (Quahog)",sci:"Mercenaria mercenaria",icon:"fa-circle",tag:"The classic",img:"clam_quahog.jpg",gradesImg:"clam_sizes.jpg",
+    id:["Thick, heavy off-white shell","Concentric growth rings","Purple stain inside the rim","Rounded, slightly triangular"],
+    ny:"1 in. thick across the hinge",ct:"1 in. thick (or won't pass a 1.5 in. ring)",
+    grades:[["Littleneck","≈1–2 in","Best raw on the half shell"],["Topneck","≈2 in","Raw or grilled"],["Cherrystone","≈2.5–3 in","Grilled, stuffed"],["Chowder","3 in+","Chowder &amp; sauce"]],
+    habitat:"Sandy-mud bottoms, intertidal out to ~30 ft",
+    find:"Tread barefoot or rake the sandy mud at low tide — feel for the hard 'click'.",
+    eat:"Littlenecks raw; bigger ones for chowder, stuffies, or the grill."},
+  cherrystone:{name:"Cherrystone",sci:"Mercenaria mercenaria",icon:"fa-circle-dot",tag:"A quahog size grade",img:"clam_quahog.jpg",
+    id:["A hard clam — same animal as the quahog","Mid-size: roughly 2.5–3 in across","Thick shell, concentric rings","Purple interior margin"],
+    ny:"Legal (over the 1 in. hinge minimum)",ct:"Legal (over 1 in. / 1.5 in. ring)",
+    note:"\"Cherrystone\" isn't a separate species — it's a market size of the hard clam, bigger than a littleneck and smaller than a chowder.",
+    habitat:"Same as the quahog — sandy-mud bottoms",
+    find:"Same as quahogs; cherrystones are just the medium ones you'll pull up.",
+    eat:"Great grilled or baked — a bit big for raw."},
+  razor:{name:"Razor Clam",sci:"Ensis directus",icon:"fa-pen",tag:"Fast & sharp",img:"clam_razor.jpg",
+    id:["Long, narrow, straight shell","Glossy olive-brown","Looks like an old straight razor","Edges are sharp — handle with care"],
+    ny:"No specific state minimum listed — check local rules",ct:"No specific state minimum listed — check local rules",
+    habitat:"Sandy intertidal flats",
+    find:"Spot the keyhole-shaped hole at low tide; a little salt in the hole brings them up — grab quick.",
+    eat:"Quick sauté or fry — don't overcook or they turn rubbery."},
+  oyster:{name:"Eastern Oyster",sci:"Crassostrea virginica",icon:"fa-water",tag:"Reef builder",img:"clam_oyster.jpg",
+    id:["Rough, irregular gray shell","Teardrop / elongated shape","Cemented to hard surfaces or each other","One flat valve, one cupped"],
+    ny:"Check local — commonly 3 in. length",ct:"3 in. length",
+    habitat:"Reefs, hard bottoms, brackish creek mouths",
+    find:"Found in clusters on hard structure — wear gloves, they're sharp.",
+    eat:"Raw on the half shell, roasted, or grilled."},
+  softshell:{name:"Soft-Shell Clam (Steamer)",sci:"Mya arenaria",icon:"fa-egg",tag:"The steamer",img:"clam_softshell.jpg",
+    id:["Thin, brittle, chalky-white shell","Oval, gaps at one end","A long 'neck' (siphon) sticks out","Shell flexes — easily chipped"],
+    ny:"Check local rules",ct:"1.5 in. in length",
+    habitat:"Soft mud flats, intertidal",
+    find:"Look for the squirt! They spit water as you walk; dig down with a clam fork.",
+    eat:"Steam them — the classic New England steamer with broth and butter."}
+};
+const SPEC_ORDER=["quahog","softshell","razor","oyster","cherrystone"];
+const ID_TARGETS=["quahog","cherrystone","razor","oyster"];
+
+const LS="clamsight.v1";
+let S={sessions:[],ack:false};
+try{const j=JSON.parse(localStorage.getItem(LS));if(j)S=Object.assign(S,j);}catch(e){}
+function save(){try{localStorage.setItem(LS,JSON.stringify(S));}catch(e){}}
+
+/* ===================== NAV ===================== */
+function go(s){
+  if(s!=="identify")stopScan(); if(s!=="teach")teachStop();
+  document.querySelectorAll(".screen").forEach(e=>e.classList.remove("active"));
+  document.getElementById("screen-"+s).classList.add("active");
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.s===s));
+  const sc=document.querySelector("#screen-"+s+" .scroll"); if(sc)sc.scrollTop=0;
+  if(s==="home")renderHome(); if(s==="species"){renderSpecies();renderFish();setGuide("clams");} if(s==="identify"){renderIdPick();scanTideStatus();} if(s==="log")renderLog();
+}
+
+/* ===================== GATE ===================== */
+let ack=false;
+function toggleAck(){ack=!ack;document.getElementById("gcheck").classList.toggle("on",ack);document.getElementById("gate-btn").style.opacity=ack?"1":".5";}
+function acknowledge(){ if(!ack){flash("Please confirm to continue");return;} S.ack=true;save();localStorage.setItem("clamsight.ack","1");document.getElementById("gate").style.display="none";boot(); }
+function boot(){ document.getElementById("app").style.visibility="visible"; const h=new Date().getHours(); document.getElementById("greet").textContent=h<11?"Morning tide, morning dig.":h<17?"Good day for a dig.":"Long Island Sound is calling."; renderHome(); renderSpecies(); renderIdPick();
+  if(S.tide)loadTide();
+  if(!window._tideInt)window._tideInt=setInterval(()=>{ if(tidePreds&&document.getElementById("screen-home").classList.contains("active"))drawTide(); },30000); }
+
+/* ===================== HOME / LOG LIST ===================== */
+function renderHome(){
+  renderTide();
+  const el=document.getElementById("home-recent"); if(!el)return;
+  if(!S.sessions.length){el.innerHTML=`<div class="muted" style="padding:4px 2px">No sessions yet. Tap <b>Log a haul</b> after your next dig.</div>`;return;}
+  el.innerHTML=S.sessions.slice(0,3).map(sessionRow).join("");
+}
+function renderLog(){
+  const el=document.getElementById("log-list"); if(!el)return;
+  if(!S.sessions.length){el.innerHTML=`<div class="muted" style="padding:8px 2px">No hauls logged yet.</div>`;return;}
+  el.innerHTML=S.sessions.map(sessionRow).join("");
+}
+function sessionRow(s){
+  const total=s.catches.reduce((a,c)=>a+(+c.count||0),0);
+  const names=s.catches.map(c=>SPECIES[c.species]?SPECIES[c.species].name.split(" (")[0]:c.species).join(", ");
+  return `<button class="row" onclick="viewSession('${s.id}')"><div class="ic">${s.photo?`<img src="${s.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:13px"/>`:'<i class="fa-solid fa-trophy"></i>'}</div><div class="meta"><div class="t">${total} shellfish · ${esc(s.location||"Long Island Sound")}</div><div class="s">${fmtDate(s.date)} · ${esc(names||"—")}</div></div><i class="fa-solid fa-chevron-right chev"></i></button>`;
+}
+
+/* ===================== IDENTIFY ===================== */
+function renderIdPick(){
+  const el=document.getElementById("id-pick"); if(!el)return;
+  el.innerHTML=ID_TARGETS.map(k=>{const S2=SPECIES[k];return `<button class="pick" onclick="speciesSheet('${k}')"><div class="pic"><i class="fa-solid ${S2.icon}"></i></div><div><div class="pn">${S2.name.split(" (")[0]}</div><div class="pd">${S2.tag}</div></div></button>`;}).join("");
+}
+/* --- Clam Scanner: real on-device assist (dark-spot + motion heuristics) --- */
+let scanStream=null,scanOn=false,scanRAF=null,scanFilter="normal",prevBri=null,detections=[],lastAnalyze=0,sweepY=0;
+const _an=document.createElement("canvas"),_ax=_an.getContext("2d",{willReadFrequently:true});
+const _fc=document.createElement("canvas"),_fx=_fc.getContext("2d",{willReadFrequently:true});
+async function startScan(){
+  const v=document.getElementById("scan-video");
+  try{
+    scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});
+    v.srcObject=scanStream; v.setAttribute("playsinline",""); v.muted=true; await v.play();
+    scanOn=true; prevBri=null; detections=[];
+    document.getElementById("scan-ph").style.display="none";
+    document.getElementById("scan-badge").classList.add("on");
+    scanTideStatus();
+    const b=document.getElementById("scan-start"); b.innerHTML='<i class="fa-solid fa-stop"></i> Stop scanning'; b.onclick=stopScan;
+    scanRAF=requestAnimationFrame(loopScan);
+  }catch(e){ flash("Camera unavailable — identify by sight below instead."); }
+}
+function stopScan(){
+  scanOn=false; if(scanRAF)cancelAnimationFrame(scanRAF);
+  if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null;}
+  const v=document.getElementById("scan-video"); if(v)v.srcObject=null;
+  const ph=document.getElementById("scan-ph"); if(ph)ph.style.display="";
+  const bd=document.getElementById("scan-badge"); if(bd)bd.classList.remove("on");
+  const ov=document.getElementById("scan-ov"); if(ov){const x=ov.getContext("2d");x.clearRect(0,0,ov.width,ov.height);}
+  const b=document.getElementById("scan-start"); if(b){b.innerHTML='<i class="fa-solid fa-camera"></i> Start scanning';b.onclick=startScan;}
+  detections=[]; prevBri=null; renderDetList();
+}
+function loopScan(t){
+  if(!scanOn)return;
+  const v=document.getElementById("scan-video"),ov=document.getElementById("scan-ov");
+  if(v&&v.videoWidth&&ov){
+    if(ov.width!==ov.clientWidth||ov.height!==ov.clientHeight){ov.width=ov.clientWidth;ov.height=ov.clientHeight;}
+    if(!lastAnalyze||t-lastAnalyze>150){ analyzeFrame(v); lastAnalyze=t; }
+    drawOverlay(ov,v);
+  }
+  scanRAF=requestAnimationFrame(loopScan);
+}
+function analyzeFrame(v){
+  const GW=72,GH=Math.max(8,Math.round(GW*v.videoHeight/v.videoWidth));
+  _an.width=GW;_an.height=GH;_ax.drawImage(v,0,0,GW,GH);
+  const d=_ax.getImageData(0,0,GW,GH).data, bri=new Float32Array(GW*GH);
+  for(let i=0;i<GW*GH;i++)bri[i]=d[i*4]*0.299+d[i*4+1]*0.587+d[i*4+2]*0.114;
+  let motion=null; if(prevBri&&prevBri.length===bri.length){motion=new Float32Array(GW*GH);for(let i=0;i<bri.length;i++)motion[i]=Math.abs(bri[i]-prevBri[i]);}
+  prevBri=bri.slice(0);
+  let mean=0; for(let i=0;i<bri.length;i++)mean+=bri[i]; mean/=bri.length;
+  const found=[],R=2;
+  for(let y=R;y<GH-R;y+=2)for(let x=R;x<GW-R;x+=2){
+    const i=y*GW+x,c=bri[i]; let la=0,n=0;
+    for(let yy=-R;yy<=R;yy++)for(let xx=-R;xx<=R;xx++){la+=bri[(y+yy)*GW+(x+xx)];n++;} la/=n;
+    const dark=la-c, mo=motion?motion[i]:0;
+    if((c<mean*0.62&&dark>13)||mo>26) found.push({x:x/GW,y:y/GH,score:dark+mo,mo});
+  }
+  found.sort((a,b)=>b.score-a.score);
+  const keep=[];
+  for(const f of found){ if(keep.length>=5)break; if(keep.every(k=>Math.hypot(k.x-f.x,k.y-f.y)>0.13))keep.push(f); }
+  detections=keep.map((f,i)=>({id:i,x:f.x,y:f.y,motion:f.mo>26,conf:Math.min(95,42+Math.round(f.score))}));
+  renderDetList();
+}
+function drawFilter(x,ov,v){
+  if(!v.videoWidth)return;
+  _fc.width=Math.min(170,ov.width); _fc.height=Math.max(8,Math.round(_fc.width*v.videoHeight/v.videoWidth));
+  _fx.drawImage(v,0,0,_fc.width,_fc.height); const im=_fx.getImageData(0,0,_fc.width,_fc.height),d=im.data;
+  for(let i=0;i<d.length;i+=4){ const b=(d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114)/255; let r,g,bl;
+    if(scanFilter==="heat"){ r=Math.min(255,b*1.7*255); g=Math.max(0,Math.min(255,(b-0.32)*1.8*255)); bl=Math.max(0,(0.45-b)*1.7*255); }
+    else { const c=b<0.5?b*0.45:0.22+(b-0.5)*1.6; r=g=bl=Math.min(255,c*1.25*255); }
+    d[i]=r;d[i+1]=g;d[i+2]=bl;
+  }
+  _fx.putImageData(im,0,0);
+  x.globalAlpha=scanFilter==="heat"?0.84:0.72; x.imageSmoothingEnabled=true; x.drawImage(_fc,0,0,ov.width,ov.height); x.globalAlpha=1;
+}
+function drawOverlay(ov,v){
+  const x=ov.getContext("2d"); x.clearRect(0,0,ov.width,ov.height);
+  if(scanFilter!=="normal")drawFilter(x,ov,v);
+  sweepY=(sweepY+ov.height*0.011)%ov.height;
+  const g=x.createLinearGradient(0,sweepY-28,0,sweepY+28); g.addColorStop(0,"rgba(20,184,166,0)");g.addColorStop(.5,"rgba(45,212,191,.45)");g.addColorStop(1,"rgba(20,184,166,0)");
+  x.fillStyle=g; x.fillRect(0,sweepY-28,ov.width,56);
+  x.strokeStyle="rgba(125,232,217,.7)";x.lineWidth=2;x.beginPath();x.moveTo(0,sweepY);x.lineTo(ov.width,sweepY);x.stroke();
+  const tn=performance.now();
+  detections.forEach(dn=>{
+    const px=dn.x*ov.width,py=dn.y*ov.height,col=dn.motion?"#ffd23f":"#00F2FE";
+    const base=Math.max(48,ov.width*0.135),p=1+0.04*Math.sin(tn*0.005+dn.id),bw=base*p,bh=base*0.82*p;
+    // topographic ripple rings (perspective ellipses, expanding)
+    x.save();x.strokeStyle=col;x.shadowColor=col;x.shadowBlur=8;
+    for(let k=0;k<3;k++){const rr=base*0.45+k*base*0.32+((tn*0.03+dn.id*30)%(base*0.32)); x.globalAlpha=Math.max(0,0.5-k*0.13-((tn*0.03)%(base*0.32))/(base*0.7)); x.lineWidth=1.6; x.beginPath(); x.ellipse(px,py+bh*0.28,rr,rr*0.42,0,0,7); x.stroke();}
+    x.restore();
+    x.save();x.strokeStyle=col;x.lineWidth=2.5;x.shadowColor=col;x.shadowBlur=14;
+    roundRect(x,px-bw/2,py-bh/2,bw,bh,9);x.stroke();x.restore();
+    const lbl=(dn.motion?"MOVE ":"CLAM ~")+dn.conf+"%";
+    x.font="bold 12px Inter,sans-serif";const tw=x.measureText(lbl).width+16;
+    x.save();x.shadowColor=col;x.shadowBlur=8;x.fillStyle=col;roundRect(x,px-tw/2,py-bh/2-23,tw,19,6);x.fill();x.restore();
+    x.fillStyle="#05201c";x.textAlign="center";x.textBaseline="middle";x.fillText(lbl,px,py-bh/2-13.5);x.textBaseline="alphabetic";
+  });
+}
+function roundRect(x,X,Y,w,h,r){x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+w,Y,X+w,Y+h,r);x.arcTo(X+w,Y+h,X,Y+h,r);x.arcTo(X,Y+h,X,Y,r);x.arcTo(X,Y,X+w,Y,r);x.closePath();}
+function scanTideStatus(){
+  const el=document.getElementById("scan-tide"); if(!el)return;
+  if(!S.tide||!tidePreds||!tidePreds.length){ el.innerHTML=`<i class="fa-solid fa-water"></i><div>Set your tide spot on Home to see the dig window here.</div>`; return; }
+  const now=new Date(), next=tidePreds.find(p=>p.t>now);
+  const lows=tidePreds.filter(p=>p.type==="L");
+  const nearLow=lows.some(p=>Math.abs(p.t-now)<90*6e4); // within 90 min of a low
+  let msg,good=nearLow;
+  if(nearLow){ msg=`<b>Tide: Low</b> — flats are exposing, good digging window.`; }
+  else if(next&&next.type==="L"){ const m=Math.round((next.t-now)/6e4); msg=`<b>Tide dropping</b> — low in ${m>90?Math.round(m/60)+'h':m+'m'}, window opening soon.`; good=true; }
+  else if(next){ const m=Math.round((next.t-now)/6e4); msg=`<b>Tide rising</b> — high in ${m>90?Math.round(m/60)+'h':m+'m'}. Best digging is around the next low.`; }
+  else msg=`Check today's tide on Home.`;
+  el.innerHTML=`<i class="fa-solid fa-water" style="color:${good?'#1f8a4d':'var(--teal)'}"></i><div>${esc(S.tide.name)} · ${msg}</div>`;
+}
+function setFilter(f){ scanFilter=f; document.querySelectorAll(".vf-chip").forEach(c=>c.classList.toggle("on",c.dataset.f===f)); }
+function renderDetList(){
+  const el=document.getElementById("det-list"); if(!el)return;
+  if(!scanOn){el.innerHTML="";return;}
+  if(!detections.length){el.innerHTML=`<div class="tiny" style="padding:6px 2px"><i class="fa-solid fa-magnifying-glass"></i> Scanning… sweep slowly over wet sand and likely spots.</div>`;return;}
+  el.innerHTML=detections.map(d=>{const col=d.motion?'#d98a1f':'#0f766e';return `<button class="row" style="padding:11px" onclick="tapDetection(${d.id})"><div class="ic" style="background:${d.motion?'#fff3d6':'#d8f3ee'};color:${col}"><i class="fa-solid ${d.motion?'fa-droplet':'fa-circle-dot'}"></i></div><div class="meta"><div class="t">${d.motion?'Movement spotted':'Dark spot / possible hole'}</div><div class="s">~${d.conf}% signal · tap to identify &amp; log</div><div class="det-bar"><i style="width:${d.conf}%;background:${col}"></i></div></div><span style="display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--teal);font-size:9.5px;font-weight:700;flex:none"><i class="fa-solid fa-location-dot" style="font-size:15px"></i>DIG HERE</span></button>`;}).join("");
+}
+function tapDetection(id){ const d=detections.find(x=>x.id===id);
+  sheet(`<div class="grab"></div><h3>Possible clam sign</h3>
+    <p class="muted" style="margin:6px 0 12px">The scanner flagged ${d&&d.motion?'a <b>squirt / movement</b> — often a clam breathing under the sand':'a <b>dark spot or small hole</b> — often a siphon hole'}. Dig gently to confirm. What do you think it is?</p>
+    <div class="pickgrid">${ID_TARGETS.map(k=>`<button class="pick" onclick="closeSheet();speciesSheet('${k}')"><div class="pic"><i class="fa-solid ${SPECIES[k].icon}"></i></div><div><div class="pn">${SPECIES[k].name.split(' (')[0]}</div><div class="pd">${SPECIES[k].tag}</div></div></button>`).join('')}</div>
+    <div class="disc"><i class="fa-solid fa-circle-info"></i><div>This is an <b>assist</b>, not a confirmed clam. Dig gently and measure before keeping anything.</div></div>`);
+}
+
+/* ===================== SPECIES ===================== */
+function renderSpecies(){
+  const el=document.getElementById("species-list"); if(!el)return;
+  el.innerHTML=SPEC_ORDER.map(k=>{const s=SPECIES[k];return `<button class="row" onclick="speciesSheet('${k}')"><div class="ic" style="${s.img?'overflow:hidden;padding:0':''}">${s.img?`<img src="${s.img}" alt="" style="width:100%;height:100%;object-fit:cover"/>`:`<i class="fa-solid ${s.icon}"></i>`}</div><div class="meta"><div class="t">${s.name}</div><div class="s">${s.tag} · legal ${s.ny.split(" (")[0]}</div></div><i class="fa-solid fa-chevron-right chev"></i></button>`;}).join("");
+}
+function speciesSheet(k){
+  const s=SPECIES[k];
+  sheet(`<div class="grab"></div>
+    ${s.img?`<img src="${s.img}" alt="" style="width:100%;height:190px;object-fit:cover;border-radius:18px;margin-bottom:12px"/>`:""}
+    <div class="spec-hero">${s.img?"":`<div class="si"><i class="fa-solid ${s.icon}"></i></div>`}<h3>${s.name}</h3><div class="sci">${s.sci}</div></div>
+    ${s.note?`<div class="disc" style="margin-top:0;margin-bottom:14px"><i class="fa-solid fa-circle-info"></i><div>${s.note}</div></div>`:""}
+    <div class="section-h" style="margin-top:0">How to ID it</div>
+    <ul class="idlist">${s.id.map(i=>`<li><i class="fa-solid fa-check"></i>${i}</li>`).join("")}</ul>
+    <div class="section-h">Legal size <span class="chip legal" style="margin-left:6px">keep only legal</span></div>
+    <div class="card">
+      <div class="kv"><span class="k">New York</span><span class="v">${s.ny}</span></div>
+      <div class="kv"><span class="k">Connecticut</span><span class="v">${s.ct}</span></div>
+    </div>
+    ${s.grades?`<div class="section-h">Size grades</div>${s.gradesImg?`<img src="${s.gradesImg}" alt="littleneck to chowder" style="width:100%;border-radius:14px;margin-bottom:10px"/><div class="tiny" style="text-align:center;margin:-4px 0 10px">Littleneck → chowder, smallest to largest</div>`:""}<table class="gradeT">${s.grades.map(g=>`<tr><td>${g[0]}</td><td>${g[1]}</td><td class="tiny">${g[2]}</td></tr>`).join("")}</table>`:""}
+    <div class="section-h">Where &amp; how to find</div>
+    <div class="card"><div class="kv"><span class="k">Habitat</span><span class="v" style="font-weight:500;color:var(--ink2)">${s.habitat}</span></div><div class="kv"><span class="k">Technique</span><span class="v" style="font-weight:500;color:var(--ink2)">${s.find}</span></div><div class="kv"><span class="k">Eating</span><span class="v" style="font-weight:500;color:var(--ink2)">${s.eat}</span></div></div>
+    <button class="btn primary" style="margin-top:16px" onclick="closeSheet();openLog('${k}')"><i class="fa-solid fa-plus"></i> Add to a haul log</button>
+    <div class="disc"><i class="fa-solid fa-triangle-exclamation"></i><div>Measure before you keep it, and only from <b>certified open waters</b>. Sizes are general — verify current NY/CT &amp; town rules.</div></div>`);
+}
+
+/* ===================== LOG A HAUL ===================== */
+let logPhoto="", logCatches=[];
+function openLog(presetSpecies){
+  logPhoto=""; logCatches=[{species:presetSpecies||"quahog",count:"",}];
+  const today=new Date().toISOString().slice(0,10);
+  sheet(`<div class="grab"></div><h3>Log a haul</h3>
+    <p class="muted" style="margin:6px 0 14px">Record what you brought home. Keep it honest — keep it legal.</p>
+    <label class="tiny" style="font-weight:700;display:block;margin-bottom:5px">Date</label>
+    <input class="field" type="date" id="lg-date" value="${today}" style="margin-bottom:12px"/>
+    <label class="tiny" style="font-weight:700;display:block;margin-bottom:5px">Spot / location</label>
+    <input class="field" id="lg-loc" placeholder="e.g. Stony Brook flats" style="margin-bottom:14px"/>
+    <label class="tiny" style="font-weight:700;display:block;margin-bottom:6px">Catch</label>
+    <div id="lg-catches"></div>
+    <button class="btn ghost" style="margin:2px 0 14px" onclick="addCatch()"><i class="fa-solid fa-plus"></i> Add another species</button>
+    <label class="tiny" style="font-weight:700;display:block;margin-bottom:5px">Notes</label>
+    <textarea class="field" id="lg-notes" rows="2" placeholder="Tide, weather, who you were with…" style="margin-bottom:6px"></textarea>
+    <label class="up-label"><i class="fa-solid fa-camera"></i> <span id="lg-photo-t">Add a photo of the haul</span><input type="file" accept="image/*" onchange="logPhotoPick(this)"/></label>
+    <div id="lg-photo-prev"></div>
+    <button class="btn primary" style="margin-top:16px" onclick="saveLog()"><i class="fa-solid fa-check"></i> Save haul</button>`);
+  renderCatches();
+}
+function renderCatches(){
+  const el=document.getElementById("lg-catches"); if(!el)return;
+  el.innerHTML=logCatches.map((c,i)=>`<div class="catch-row">
+    <select class="field" onchange="logCatches[${i}].species=this.value">${SPEC_ORDER.map(k=>`<option value="${k}" ${c.species===k?'selected':''}>${SPECIES[k].name.split(" (")[0]}</option>`).join("")}</select>
+    <input class="field num" type="number" inputmode="numeric" placeholder="#" value="${c.count}" oninput="logCatches[${i}].count=this.value"/>
+    ${logCatches.length>1?`<button onclick="logCatches.splice(${i},1);renderCatches()"><i class="fa-solid fa-circle-minus"></i></button>`:''}
+  </div>`).join("");
+}
+function addCatch(){ logCatches.push({species:"quahog",count:""}); renderCatches(); }
+function logPhotoPick(input){
+  const f=input.files&&input.files[0]; if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{ downscale(rd.result,900,(d)=>{ logPhoto=d; document.getElementById("lg-photo-t").textContent="Photo added ✓"; document.getElementById("lg-photo-prev").innerHTML=`<img class="logthumb" src="${d}"/>`; }); };
+  rd.readAsDataURL(f);
+}
+function downscale(dataUrl,max,cb){
+  const img=new Image();
+  img.onload=()=>{ let w=img.width,h=img.height; if(w>max||h>max){ if(w>h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;} } const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(img,0,0,w,h); cb(c.toDataURL("image/jpeg",0.82)); };
+  img.onerror=()=>cb(dataUrl); img.src=dataUrl;
+}
+function saveLog(){
+  const date=document.getElementById("lg-date").value||new Date().toISOString().slice(0,10);
+  const loc=document.getElementById("lg-loc").value.trim();
+  const notes=document.getElementById("lg-notes").value.trim();
+  const catches=logCatches.filter(c=>+c.count>0).map(c=>({species:c.species,count:+c.count}));
+  if(!catches.length){flash("Add at least one species with a count");return;}
+  S.sessions.unshift({id:"s"+Date.now(),date,location:loc,notes,catches,photo:logPhoto});
+  save(); closeSheet(); flash("Haul saved 🐚"); renderHome(); renderLog();
+}
+function viewSession(id){
+  const s=S.sessions.find(x=>x.id===id); if(!s)return;
+  const total=s.catches.reduce((a,c)=>a+c.count,0);
+  sheet(`<div class="grab"></div><h3>${fmtDate(s.date)}</h3>
+    <div class="tiny" style="margin-bottom:12px"><i class="fa-solid fa-location-dot"></i> ${esc(s.location||"Long Island Sound")}</div>
+    ${s.photo?`<img class="logthumb" style="height:190px;margin-bottom:14px" src="${s.photo}"/>`:""}
+    <div class="card" style="margin-bottom:14px">${s.catches.map(c=>`<div class="kv"><span class="k">${SPECIES[c.species]?SPECIES[c.species].name.split(" (")[0]:c.species}</span><span class="v">${c.count}</span></div>`).join("")}<div class="kv"><span class="k" style="font-weight:700;color:var(--ink)">Total</span><span class="v" style="color:var(--teal)">${total}</span></div></div>
+    ${s.notes?`<p class="muted" style="margin-bottom:14px">"${esc(s.notes)}"</p>`:""}
+    <button class="btn primary" onclick="bragReport('${s.id}')"><i class="fa-solid fa-share-nodes"></i> Make a brag report</button>
+    <button class="btn danger" style="margin-top:10px" onclick="delSession('${s.id}')"><i class="fa-solid fa-trash"></i> Delete session</button>`);
+}
+function delSession(id){ if(confirm("Delete this session?")){S.sessions=S.sessions.filter(x=>x.id!==id);save();closeSheet();renderHome();renderLog();flash("Deleted");} }
+
+/* ===================== BRAG REPORT (canvas, Pro) ===================== */
+function bragReport(id){
+  const s=S.sessions.find(x=>x.id===id); if(!s)return;
+  const total=s.catches.reduce((a,c)=>a+c.count,0);
+  const cv=document.createElement("canvas"); cv.width=1080; cv.height=1080; const x=cv.getContext("2d");
+  // teal gradient
+  const g=x.createLinearGradient(0,0,1080,1080); g.addColorStop(0,"#0f766e");g.addColorStop(.55,"#0b5f59");g.addColorStop(1,"#083f42");
+  x.fillStyle=g; x.fillRect(0,0,1080,1080);
+  // light rays
+  x.save();x.globalAlpha=.16;x.strokeStyle="#fff";x.lineWidth=30;x.translate(760,-120);x.rotate(.34);
+  for(let i=0;i<16;i++){x.beginPath();x.moveTo(i*70-560,0);x.lineTo(i*70-560,1500);x.stroke();}
+  x.restore();
+  // glow
+  const rg=x.createRadialGradient(820,200,40,820,200,520); rg.addColorStop(0,"rgba(255,255,255,.28)");rg.addColorStop(1,"transparent"); x.fillStyle=rg;x.fillRect(0,0,1080,1080);
+  function txt(t,px,py,size,weight,col,font){x.fillStyle=col;x.font=`${weight} ${size}px ${font||'Inter, sans-serif'}`;x.fillText(t,px,py);}
+  txt("CLAM FINDER",80,150,30,"700","rgba(255,255,255,.7)"); x.letterSpacing="6px";
+  txt("THE HAUL",80,260,96,"600","#fff","Playfair Display, Georgia, serif");
+  txt(fmtDate(s.date)+"  ·  "+(s.location||"Long Island Sound"),80,320,32,"500","rgba(255,255,255,.85)");
+  // big total
+  x.fillStyle="#fff";x.font="700 300px Playfair Display, Georgia, serif";x.fillText(String(total),80,640);
+  txt("shellfish landed",84,700,40,"600","rgba(255,255,255,.85)");
+  // breakdown
+  let yy=820;
+  s.catches.forEach(c=>{ const nm=SPECIES[c.species]?SPECIES[c.species].name.split(" (")[0]:c.species; txt("• "+nm,84,yy,40,"600","#fff"); x.textAlign="right";txt(String(c.count),1000,yy,40,"700","#bdf3e6");x.textAlign="left"; yy+=64; });
+  txt("Caught legal. Caught clean. 🐚",80,1010,30,"500","rgba(255,255,255,.7)");
+  const url=cv.toDataURL("image/png");
+  sheet(`<div class="grab"></div><h3>Your brag report</h3><p class="muted" style="margin:6px 0 14px">Save it and share your haul.</p>
+    <img src="${url}" style="width:100%;border-radius:16px;border:1px solid var(--line2)"/>
+    <a class="btn primary" style="margin-top:14px" href="${url}" download="clamsight-haul-${s.date}.png"><i class="fa-solid fa-download"></i> Save image</a>
+    <button class="btn ghost" style="margin-top:10px" onclick="closeSheet()">Close</button>`);
+}
+
+/* ===================== TIDE TIMER (NOAA CO-OPS, real predictions) ===================== */
+const STATIONS=[
+  {id:"8469549",n:"Cos Cob / Greenwich",la:41.017,lo:-73.597},
+  {id:"8467726",n:"Southport",la:41.133,lo:-73.283},
+  {id:"8467150",n:"Bridgeport",la:41.176,lo:-73.184},
+  {id:"8465705",n:"New Haven",la:41.283,lo:-72.908},
+  {id:"8463701",n:"Clinton Harbor",la:41.268,lo:-72.532},
+  {id:"8461490",n:"New London",la:41.372,lo:-72.096},
+  {id:"8458694",n:"Watch Hill Point",la:41.305,lo:-71.860},
+  {id:"8516945",n:"Kings Point",la:40.810,lo:-73.765},
+  {id:"8514560",n:"Port Jefferson",la:40.950,lo:-73.077},
+  {id:"8512668",n:"Mattituck Inlet",la:41.015,lo:-72.562},
+  {id:"8512114",n:"Southold",la:41.060,lo:-72.413},
+  {id:"8510560",n:"Montauk",la:41.048,lo:-71.959},
+  {id:"8516881",n:"Atlantic Beach (Rockaway)",la:40.595,lo:-73.743}
+];
+let tidePreds=null;
+function _d2(a,b,c,d){const dy=a-c,dx=(b-d)*Math.cos(a*Math.PI/180);return dy*dy+dx*dx;}
+function nearestStation(la,lo){let best=STATIONS[0],bd=1e9;for(const s of STATIONS){const d=_d2(la,lo,s.la,s.lo);if(d<bd){bd=d;best=s;}}return best;}
+function fmtTime(d){return d.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});}
+function ymd(d){return ""+d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");}
+function locateTide(){
+  if(!navigator.geolocation){pickStation();return;}
+  flash("Getting your location…");
+  navigator.geolocation.getCurrentPosition(
+    p=>{ const s=nearestStation(p.coords.latitude,p.coords.longitude); S.tide={id:s.id,name:s.n}; save(); loadTide(); },
+    e=>{ flash("Couldn't get location — pick a spot."); pickStation(); }, {timeout:9000,maximumAge:600000});
+}
+function pickStation(){
+  sheet(`<div class="grab"></div><h3>Pick your tide spot</h3><p class="muted" style="margin:6px 0 12px">Choose the NOAA station nearest where you'll be clamming.</p>${STATIONS.map(s=>`<button class="row" onclick="setStation('${s.id}',&quot;${s.n}&quot;)"><div class="ic"><i class="fa-solid fa-location-dot"></i></div><div class="meta"><div class="t">${s.n}</div></div><i class="fa-solid fa-chevron-right chev"></i></button>`).join("")}`);
+}
+function setStation(id,n){ S.tide={id,name:n}; save(); closeSheet(); loadTide(); }
+function changeTide(){ pickStation(); }
+function renderTide(){
+  const el=document.getElementById("tide-card"); if(!el)return;
+  const st=S.tide;
+  if(!st){ el.innerHTML=`<div class="tide-loc" style="margin-bottom:8px"><i class="fa-solid fa-water"></i> Tide timer</div><div class="muted" style="margin-bottom:13px">See the next high &amp; low tide for your spot — clamming is best around <b>low tide</b>.</div><button class="btn primary" onclick="locateTide()"><i class="fa-solid fa-location-crosshairs"></i> Use my location</button><button class="btn ghost" style="margin-top:9px" onclick="pickStation()">Pick a spot manually</button>`; return; }
+  if(!tidePreds){ el.innerHTML=`<div class="tide-top"><div class="tide-loc"><i class="fa-solid fa-water"></i> <span>${esc(st.name)}</span></div><button class="tide-chg" onclick="changeTide()">Change</button></div><div style="text-align:center;padding:14px 0"><div class="spin"></div><div class="tiny" style="margin-top:8px">Loading tides…</div></div>`; return; }
+  drawTide();
+}
+async function loadTide(){
+  tidePreds=null; renderTide();
+  const st=S.tide; if(!st)return;
+  const now=new Date(), end=new Date(now.getTime()+2*864e5);
+  const u=`https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=predictions&application=Clam Finder&begin_date=${ymd(now)}&end_date=${ymd(end)}&datum=MLLW&station=${st.id}&time_zone=lst_ldt&units=english&interval=hilo&format=json`;
+  try{ const r=await fetch(u); const j=await r.json(); tidePreds=(j.predictions||[]).map(p=>({t:new Date(p.t.replace(" ","T")),type:p.type,v:+p.v})); }
+  catch(e){ tidePreds=[]; }
+  drawTide();
+}
+function drawTide(){
+  const el=document.getElementById("tide-card"); if(!el)return; const st=S.tide; if(!st)return;
+  if(!tidePreds||!tidePreds.length){ el.innerHTML=`<div class="tide-top"><div class="tide-loc"><i class="fa-solid fa-water"></i> <span>${esc(st.name)}</span></div><button class="tide-chg" onclick="changeTide()">Change</button></div><div class="muted" style="margin-bottom:10px">Couldn't load tides right now.</div><button class="btn ghost" onclick="loadTide()"><i class="fa-solid fa-rotate"></i> Retry</button>`; return; }
+  const now=new Date(), next=tidePreds.find(p=>p.t>now), todays=tidePreds.filter(p=>p.t.toDateString()===now.toDateString());
+  let body;
+  if(next){ const ms=next.t-now,h=Math.floor(ms/3.6e6),m=Math.floor((ms%3.6e6)/6e4),low=next.type==="L";
+    body=`<div class="tide-next"><div class="tide-ic"><i class="fa-solid ${low?'fa-arrow-down-long':'fa-arrow-up-long'}"></i></div><div><div class="tide-big">${low?'Low':'High'} tide in ${h>0?h+'h ':''}${m}m</div><div class="tide-sub">at ${fmtTime(next.t)} · ${next.v.toFixed(1)} ft${low?' · good digging':''}</div></div></div>`;
+  } else body=`<div class="muted">No more tide changes today.</div>`;
+  const sched=todays.map(p=>`<span class="tide-pill ${p.type==='L'?'lowt':'hight'}${p===next?' now':''}"><i class="fa-solid ${p.type==='L'?'fa-arrow-down':'fa-arrow-up'}"></i>${fmtTime(p.t)}</span>`).join("");
+  el.innerHTML=`<div class="tide-top"><div class="tide-loc"><i class="fa-solid fa-water"></i> <span>${esc(st.name)}</span></div><button class="tide-chg" onclick="changeTide()">Change</button></div>
+    ${body}
+    <div class="tide-sched">${sched}</div>
+    <div class="tiny" style="margin-top:10px">Best clamming is around <b>low tide</b>, when the flats are exposed. Predictions from <b>NOAA</b> for the nearest station — your exact spot may vary a little.</div>`;
+}
+
+/* ===================== FISHING GUIDE ===================== */
+const FISH=[
+  {n:"Striped Bass",sci:"Morone saxatilis",size:'28–31" slot',bag:"1 per day",season:"Apr 15 – Dec 15",dock:"Clams, bunker chunks",boat:"Live bunker, eels, topwater"},
+  {n:"Summer Flounder (Fluke)",sci:"Paralichthys dentatus",size:'19–19.5"',bag:"3 per day",season:"May 4 – Oct 15",dock:"Squid, Gulp on a bucktail",boat:"Drift rigs, live bait"},
+  {n:"Black Sea Bass",sci:"Centropristis striata",size:'16"',bag:"3 / 6 (seasonal)",season:"May 16 – Dec 31",dock:"Clams, squid",boat:"Jigs, bucktails near structure"},
+  {n:"Scup (Porgy)",sci:"Stenotomus chrysops",size:'9.5–11"',bag:"30+",season:"May 1 – Dec 31",dock:"Clams, worms, squid",boat:"High-low rigs"}
+];
+function setGuide(g){ const c=document.getElementById("species-list"),fl=document.getElementById("fish-list"),sc=document.getElementById("seg-clams"),sf=document.getElementById("seg-fish"); if(!c||!fl)return; if(sc)sc.classList.toggle("on",g==="clams"); if(sf)sf.classList.toggle("on",g==="fish"); if(g==="fish"){c.style.display="none";fl.style.display="";renderFish();} else {c.style.display="";fl.style.display="none";} }
+function renderFish(){ const el=document.getElementById("fish-list"); if(!el)return; el.innerHTML=FISH.map((f,i)=>`<button class="row" onclick="fishSheet(${i})"><div class="ic"><i class="fa-solid fa-fish"></i></div><div class="meta"><div class="t">${f.n}</div><div class="s">Min ${f.size} · ${f.bag}</div></div><i class="fa-solid fa-chevron-right chev"></i></button>`).join(""); }
+function fishSheet(i){ const f=FISH[i]; sheet(`<div class="grab"></div><div class="spec-hero"><div class="si"><i class="fa-solid fa-fish"></i></div><h3>${f.n}</h3><div class="sci">${f.sci}</div></div>
+  <div class="section-h" style="margin-top:0">Regulations · NY 2026</div>
+  <div class="card"><div class="kv"><span class="k">Min size</span><span class="v">${f.size}</span></div><div class="kv"><span class="k">Bag limit</span><span class="v">${f.bag}</span></div><div class="kv"><span class="k">Open season</span><span class="v">${f.season}</span></div></div>
+  <div class="section-h">Best bait</div>
+  <div class="card"><div class="kv"><span class="k">From the dock</span><span class="v" style="font-weight:500;color:var(--ink2)">${f.dock}</span></div><div class="kv"><span class="k">From a boat</span><span class="v" style="font-weight:500;color:var(--ink2)">${f.boat}</span></div></div>
+  <button class="btn ghost" style="margin-top:14px" onclick="extLink('https://dec.ny.gov/things-to-do/fishing/saltwater-fishing')"><i class="fa-solid fa-arrow-up-right-from-square"></i> Official NY DEC saltwater regs</button>
+  <div class="disc"><i class="fa-solid fa-triangle-exclamation"></i><div>2026 NY saltwater guidance — <b>seasons, slots and bag limits change</b>. Always verify on the NY DEC page before you fish.</div></div>`); }
+
+/* ===================== TEACH THE AI (on-device MobileNet + KNN) ===================== */
+let TF=null,MNET=null,KNN=null,_aiLoading=null,aiReady=false,teachStream=null,teachTimer=null;
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("script"));document.head.appendChild(s);});}
+function loadAI(){ if(KNN&&MNET)return Promise.resolve(); if(_aiLoading)return _aiLoading;
+  _aiLoading=(async()=>{ await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"); await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier@1.2.4/dist/knn-classifier.min.js"); await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"); TF=window.tf; MNET=await mobilenet.load({version:2,alpha:0.5}); KNN=knnClassifier.create(); restoreKNN(); })();
+  return _aiLoading;
+}
+function embed(el){return MNET.infer(el,true);}
+function persistKNN(){ try{ const ds=KNN.getClassifierDataset(),out={}; Object.keys(ds).forEach(k=>{out[k]={d:Array.from(ds[k].dataSync()).map(v=>+v.toFixed(4)),s:ds[k].shape};}); localStorage.setItem("clamfinder.knn",JSON.stringify(out)); }catch(e){} }
+function restoreKNN(){ try{ const raw=JSON.parse(localStorage.getItem("clamfinder.knn")); if(!raw||!TF||!KNN)return; const ds={}; Object.keys(raw).forEach(k=>{ds[k]=TF.tensor(raw[k].d,raw[k].s);}); KNN.setClassifierDataset(ds); }catch(e){} }
+function teachCrop(){ const cam=document.getElementById("teach-cam"),v=cam&&cam.querySelector("video"); if(!v||!v.videoWidth)return null; const sz=Math.min(v.videoWidth,v.videoHeight),c=document.createElement("canvas"); c.width=224;c.height=224; c.getContext("2d").drawImage(v,(v.videoWidth-sz)/2,(v.videoHeight-sz)/2,sz,sz,0,0,224,224); return c; }
+async function teachStart(){
+  const cam=document.getElementById("teach-cam");
+  document.getElementById("teach-status").textContent="Loading the on-device AI engine (first time can take several seconds)…";
+  try{
+    teachStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});
+    let v=cam.querySelector("video"); if(!v){v=document.createElement("video");v.setAttribute("playsinline","");v.muted=true;cam.appendChild(v);}
+    v.srcObject=teachStream; await v.play();
+    document.getElementById("teach-ph").style.display="none";
+    document.getElementById("teach-reticle").style.display="block";
+    const b=document.getElementById("teach-start"); b.innerHTML='<i class="fa-solid fa-xmark"></i> Close camera'; b.onclick=teachStop;
+    await loadAI(); aiReady=true;
+    document.getElementById("teach-btns").style.display="grid";
+    updateTeachCounts(); teachLoop();
+  }catch(e){ const st=document.getElementById("teach-status"); if(st)st.textContent="Couldn't start — check camera permission and your connection, then try again."; teachStop(); }
+}
+function teachStop(){
+  if(teachTimer){clearTimeout(teachTimer);teachTimer=null;}
+  if(teachStream){teachStream.getTracks().forEach(t=>t.stop());teachStream=null;}
+  const cam=document.getElementById("teach-cam"),v=cam&&cam.querySelector("video"); if(v)v.remove();
+  const ph=document.getElementById("teach-ph"); if(ph)ph.style.display="";
+  const r=document.getElementById("teach-reticle"); if(r)r.style.display="none";
+  const p=document.getElementById("teach-pred"); if(p)p.style.display="none";
+  const bt=document.getElementById("teach-btns"); if(bt)bt.style.display="none";
+  const b=document.getElementById("teach-start"); if(b){b.innerHTML='<i class="fa-solid fa-camera"></i> Open camera';b.onclick=teachStart;}
+}
+async function teachAdd(label){ if(!aiReady||!teachStream)return; const c=teachCrop(); if(!c)return; const emb=embed(c); KNN.addExample(emb,label); emb.dispose(); persistKNN(); updateTeachCounts(); flash(label==="clam"?"Added a clam-sign example":"Added an empty-sand example"); }
+function teachCounts(){ try{return KNN?KNN.getClassExampleCount():{};}catch(e){return {};} }
+function updateTeachCounts(){
+  const cc=teachCounts(),ce=document.getElementById("cnt-clam"),se=document.getElementById("cnt-sand"); if(ce)ce.textContent=(cc.clam||0)+" added"; if(se)se.textContent=(cc.sand||0)+" added";
+  const ready=(cc.clam||0)>0&&(cc.sand||0)>0,st=document.getElementById("teach-status");
+  if(st)st.innerHTML=ready?`<b style="color:var(--green)">Trained.</b> Point at the sand to see what it thinks. Add more to make it sharper.`:`Add at least one of each. Point at a real clam sign → tap “clam sign”. Point at bare sand → tap “empty sand”.`;
+}
+function teachLoop(){
+  if(!teachStream)return;
+  teachTimer=setTimeout(async()=>{
+    try{ const cc=teachCounts(); if((cc.clam||0)>0&&(cc.sand||0)>0){ const c=teachCrop(); if(c){ const emb=embed(c),r=await KNN.predictClass(emb,Math.min(20,(cc.clam||0)+(cc.sand||0))); emb.dispose(); const isClam=r.label==="clam",conf=Math.round((r.confidences[r.label]||0)*100),el=document.getElementById("teach-pred"); if(el){el.style.display="block";el.style.background=isClam?"rgba(31,138,77,.85)":"rgba(6,35,31,.74)";el.textContent=isClam?`Looks like a clam sign · ${conf}%`:`Looks like empty sand · ${conf}%`;} } } }catch(e){}
+    teachLoop();
+  },650);
+}
+function teachReset(){ try{KNN&&KNN.clearAllClasses();}catch(e){} try{localStorage.removeItem("clamfinder.knn");}catch(e){} updateTeachCounts(); const p=document.getElementById("teach-pred"); if(p)p.style.display="none"; flash("Training reset"); }
+
+/* ===================== SHEETS / UTIL ===================== */
+function sheet(html){document.getElementById("sheet").innerHTML=html;document.getElementById("overlay").classList.add("show");}
+function closeSheet(){document.getElementById("overlay").classList.remove("show");}
+function extLink(u){ if(confirm("Open this official site in your browser?\n\n"+u))window.open(u,"_blank"); }
+function clearData(){ if(confirm("Erase all logged sessions on this device?")){S.sessions=[];save();renderHome();renderLog();flash("Data cleared");} }
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function fmtDate(d){try{return new Date(d+"T00:00:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});}catch(e){return d;}}
+let toastT;function flash(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),1900);}
+
+/* ===================== BOOT ===================== */
+function startIntro(){ localStorage.setItem("clamfinder.intro","1"); const i=document.getElementById("intro"); if(i)i.style.display="none"; if(localStorage.getItem("clamsight.ack")){ document.getElementById("gate").style.display="none"; boot(); } }
+function initFlow(){
+  const seen=localStorage.getItem("clamfinder.intro"), ack=localStorage.getItem("clamsight.ack");
+  if(seen){ const i=document.getElementById("intro"); if(i)i.style.display="none"; if(ack){ document.getElementById("gate").style.display="none"; boot(); } }
+}
+window.addEventListener("load",initFlow);
+if(document.readyState==="complete")initFlow();
+</script>
+</body>
+</html>
