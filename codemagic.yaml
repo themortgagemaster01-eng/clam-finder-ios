@@ -30,6 +30,12 @@ workflows:
         script: |
           npx cap add ios || true
           npx cap sync ios
+      - name: Force universal device family (iPhone + iPad)
+        script: |
+          PBX="ios/App/App.xcodeproj/project.pbxproj"
+          sed -i '' 's/TARGETED_DEVICE_FAMILY = [^;]*;/TARGETED_DEVICE_FAMILY = "1,2";/g' "$PBX"
+          echo "--- device family now ---"
+          grep -n "TARGETED_DEVICE_FAMILY" "$PBX" || true
       - name: Set Info.plist usage strings + build number
         script: |
           PLIST="ios/App/App/Info.plist"
@@ -46,7 +52,10 @@ workflows:
           BN=$(date +%s)
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BN" "$PLIST" 2>/dev/null || \
           /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BN" "$PLIST"
-          echo "CFBundleVersion=$BN"
+          # Marketing version -> 1.0.1 (new App Store version for the iPhone-capable update)
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.1" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string 1.0.1" "$PLIST"
+          echo "CFBundleVersion=$BN  CFBundleShortVersionString=1.0.1"
       - name: Set the app icon (Clam Finder clam icon)
         script: |
           ICONSET="ios/App/App/Assets.xcassets/AppIcon.appiconset"
