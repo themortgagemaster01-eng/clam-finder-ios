@@ -555,7 +555,7 @@ function loopScan(t){
   const v=document.getElementById("scan-video"),ov=document.getElementById("scan-ov");
   if(v&&v.videoWidth&&ov){
     if(ov.width!==ov.clientWidth||ov.height!==ov.clientHeight){ov.width=ov.clientWidth;ov.height=ov.clientHeight;}
-    if(!lastAnalyze||t-lastAnalyze>150){ analyzeFrame(v); lastAnalyze=t; }
+    if(!lastAnalyze||t-lastAnalyze>240){ analyzeFrame(v); lastAnalyze=t; }
     drawOverlay(ov,v);
   }
   scanRAF=requestAnimationFrame(loopScan);
@@ -573,12 +573,12 @@ function analyzeFrame(v){
     const i=y*GW+x,c=bri[i]; let la=0,n=0;
     for(let yy=-R;yy<=R;yy++)for(let xx=-R;xx<=R;xx++){la+=bri[(y+yy)*GW+(x+xx)];n++;} la/=n;
     const dark=la-c, mo=motion?motion[i]:0;
-    if((c<mean*0.62&&dark>13)||mo>26) found.push({x:x/GW,y:y/GH,score:dark+mo,mo});
+    if((c<mean*0.5&&dark>26)||mo>52) found.push({x:x/GW,y:y/GH,score:dark+mo,mo});
   }
   found.sort((a,b)=>b.score-a.score);
   const keep=[];
-  for(const f of found){ if(keep.length>=5)break; if(keep.every(k=>Math.hypot(k.x-f.x,k.y-f.y)>0.13))keep.push(f); }
-  detections=keep.map((f,i)=>({id:i,x:f.x,y:f.y,motion:f.mo>26,conf:Math.min(95,42+Math.round(f.score))}));
+  for(const f of found){ if(keep.length>=3)break; if(keep.every(k=>Math.hypot(k.x-f.x,k.y-f.y)>0.18))keep.push(f); }
+  detections=keep.map((f,i)=>({id:i,x:f.x,y:f.y,motion:f.mo>52,conf:Math.min(95,28+Math.round(f.score))}));
   renderDetList();
 }
 function drawFilter(x,ov,v){
