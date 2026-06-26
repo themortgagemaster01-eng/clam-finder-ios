@@ -52,10 +52,10 @@ workflows:
           BN=$(date +%s)
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BN" "$PLIST" 2>/dev/null || \
           /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BN" "$PLIST"
-          # Marketing version -> 1.0.1 (new App Store version for the iPhone-capable update)
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.1" "$PLIST" 2>/dev/null || \
-          /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string 1.0.1" "$PLIST"
-          echo "CFBundleVersion=$BN  CFBundleShortVersionString=1.0.1"
+          # Marketing version -> 1.0.2 (new App Store version for the iPhone-capable update)
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.2" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string 1.0.2" "$PLIST"
+          echo "CFBundleVersion=$BN  CFBundleShortVersionString=1.0.2"
       - name: Set the app icon (Clam Finder clam icon)
         script: |
           ICONSET="ios/App/App/Assets.xcassets/AppIcon.appiconset"
